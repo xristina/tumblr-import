@@ -1,0 +1,153 @@
+---
+layout: post
+title: Move fast and don’t break things!  Testing with Jenkins, Ansible and Docker
+date: '2014-04-11T16:50:00+03:00'
+tags:
+- opensource
+- testing
+- ansible
+- docker
+- jenkins
+tumblr_url: https://blog.mist.io/post/82383668190/move-fast-and-dont-break-things-testing-with
+---
+<p>One of our highest priorities at <a href="https://mist.io">Mist.io</a> is to never break production. Our users depend on it to manage and monitor their servers and we depend on them. At the same time, we need to move fast with development and deliver updates as soon as possible. We want to be able to easily deploy several times per day.</p>
+<p>A big part of Mist.io is the web interface so we use tools like <a href="http://docs.seleniumhq.org/">Selenium</a>, <a href="http://splinter.cobrateam.info/">Splinter</a> and <a href="https://pypi.python.org/pypi/behave">Behave</a> for headless web interface testing. However testing the UI is time-consuming. Having to wait 40 minutes to get a green light before merging each pull request is not very agile.</p>
+<p>In this post we’ll describe the setup we’ve used to reduce testing time. It is based on Jenkins, Ansible and Docker and its main mission is to automate build steps and run tests in parallel and as quickly as possible.</p>
+<p>Since execution time is essential for us, we opted to run our CI suite on one of Rackspace’s <a href="http://www.rackspace.com/cloud/servers/">High-Performance Cloud Servers</a> due to their fast performance and short provisioning times. In general, make sure you give your test server enough RAM and a fast disk.</p>
+<p><figure class="tmblr-full" data-orig-height="161" data-orig-width="500" data-orig-src="https://66.media.tumblr.com/b3c9b000e59d6f6721a17e298fda33bf/tumblr_inline_n3vea8wswP1rgqrs8.png"><img alt="image" src="https://66.media.tumblr.com/6622b8e46023c0db982610bfb7f94c32/tumblr_inline_pkbcog71yN1rgqrs8_540.png" data-orig-height="161" data-orig-width="500" data-orig-src="https://66.media.tumblr.com/b3c9b000e59d6f6721a17e298fda33bf/tumblr_inline_n3vea8wswP1rgqrs8.png"/></figure></p>
+
+<p>Our first stop for our testing suite, is <a href="http://jenkins-ci.org/">Jenkins</a>. We&rsquo;ve used Jenkins in other projects before and we feel comfortable with it since it is mature, widely used and provides great flexibility through its plugin system. Jenkins has very good <a href="https://wiki.jenkins-ci.org/display/JENKINS/GitHub+Plugin">Github integration</a> which is another plus for us. It is <a href="http://fourkitchens.com/blog/2011/09/20/trigger-jenkins-builds-pushing-github">quite simple</a> to set it up so that every commit in a branch will trigger the tests.</p>
+<p>When our needs started growing, our first thought was to add more Jenkins nodes and have multiple tests running in parallel. But there are many different environments that we want to test every commit against:</p>
+<ul><li>Test the deployment of the app in a clean environment, a fresh build.</li>
+<li>Test the deployment of the app in a staging environment where you want to ensure backwards compatibility</li>
+<li>Test the web interface against all supported browsers.</li>
+</ul><p>All these meant that testing requirements would grow over time and a testing infrastructure based solely on Jenkins would not do the job fast enough.<figure class="tmblr-full" data-orig-height="170" data-orig-width="500" data-orig-src="https://66.media.tumblr.com/edaf107dfc6483b5ae78f05951e6d84b/tumblr_inline_n3veczlmLb1rgqrs8.png"><img alt="image" src="https://66.media.tumblr.com/a4072daa202170b44dec6d511c9d737c/tumblr_inline_pkbcohVKlA1rgqrs8_540.png" data-orig-height="170" data-orig-width="500" data-orig-src="https://66.media.tumblr.com/edaf107dfc6483b5ae78f05951e6d84b/tumblr_inline_n3veczlmLb1rgqrs8.png"/></figure></p>
+
+<h2>Enter Docker</h2>
+<p><a href="https://www.docker.io/">Docker</a> helps you easily create lightweight, portable, self-sufficient containers from any application. It is fast, reliable and a perfect fit for our needs. The idea, is to set up Jenkins so that every pull request to a specific branch (e.g. staging) triggers a job. Jenkins then commands our testing infrastructure to spawn different docker applications simultaneously and runs the tests in parallel.</p>
+<p>This way, we can test any environment. We just have to describe each application the same way we would&rsquo;ve done manually. On the plus side, we can use pre-made images from the docker repository to jumpstart our tests.</p>
+<p>For example we could do this:</p>
+<pre><code>docker pull ubuntu</code></pre>
+<p>And we will end up with an ubuntu image/application. We can then run the docker container by typing:</p>
+<pre><code>docker run -i -t ubuntu /bin/bash</code></pre>
+<p>And we will be in a fresh, newly created ubuntu environment.</p>
+<p>But we don’t want to manually run docker commands after every pull request. What we need, are Dockerfiles. Dockerfiles are sets of steps that describe an image/container. We&rsquo;ll use them to build our custom docker images.</p>
+<p>Dockerfile commands are fairly <a href="https://docs.docker.io/en/latest/reference/builder/">simple</a>. For example:</p>
+<pre><code>FROM ubuntu:latest
+MAINTAINER mist.io
+RUN echo "deb <a href="http://archive.ubuntu.com/ubuntu">http://archive.ubuntu.com/ubuntu</a> precise main universe" &gt; /etc/apt/sources.list
+RUN apt-get update
+RUN apt-get upgrade -y
+RUN apt-get install -y build-essential git python-dev python-virtualenv
+RUN apt-get install -y xterm
+RUN apt-get install -y -q x11vnc xvfb
+RUN apt-get install -y xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic
+RUN add-apt-repository -y ppa:mozillateam/firefox-next
+RUN apt-get update
+RUN apt-get install -y firefox
+RUN mkdir MIST
+RUN cd MIST &amp;&amp; git clone <a href="https://github.com/mistio/mist.io">https://github.com/mistio/mist.io</a>
+WORKDIR MIST/mist.io
+RUN git pull
+RUN cp settings.py.dist settings.py
+RUN echo JS_BUILD = True &gt;&gt; settings.py
+RUN echo CSS_BUILD = True &gt;&gt; settings.py
+RUN echo SSL_VERIFY = True &gt;&gt; settings.py
+RUN virtualenv . &amp;&amp; ./bin/pip install --upgrade setuptools
+RUN ./bin/python bootstrap.py &amp;&amp; ./bin/buildout -N
+ADD ./test_config.py src/mist/io/tests/features/
+ADD ./init.sh /
+ENTRYPOINT ./init.sh
+</code></pre>
+<p><span><br/></span></p>
+<p><strong>FROM</strong> Chooses the base image (ubuntu/latest)</p>
+<p><strong>RUN</strong> Runs the following commands. First, we update the system ant then we install Xvfb, the latest firefox etc in order to run headless browser steps. Finally, we build the Mist.io app</p>
+<p><strong>ADD</strong> Adds files from our host machine to the docker image. In this example, we added the configuration for tests and an init.sh script. The init.sh script could be as simple as this:</p>
+<pre><code>#!/bin/bash
+cd MIST/mist.io
+git checkout $BRANCH
+./bin/run_test
+</code></pre>
+<p><strong>ENTRYPOINT</strong> This tells docker to start with ./init.sh script every time we run the image.</p>
+<p>To build the docker image for future reuse:</p>
+<pre><code>docker build -t mist/iotest /path/to/Dockerfile</code></pre>
+<p>Now we have a test environment. If there are more tests in other branches that need to be spawned we can use it for every one of them:</p>
+<pre><code>docker run -e BRANCH=your_branch mist/iotest</code></pre>
+<p>If we had multiple test servers, we would have to build every custom image in every test server. Fortunately, docker lets you have your own <a href="http://docs.docker.io/en/latest/use/workingwithrepository/">private repository</a> of docker images. You can build your custom image once, say mist/iotest, push it to the repository and run:</p>
+<pre><code>docker pull mist:iotest</code></pre>
+<p>This is a simple test scenario, but the possibilities are endless. For example, in another of our test scenarios we want to spawn a docker application with our monitor service and one with the mist web app.</p>
+<p>The problem, is that we need every test server configured with docker and every docker image available. And we need to automate the procedure to be able to scale our test server infrastructure whenever needed.</p>
+<p><figure class="tmblr-full" data-orig-height="61" data-orig-width="425" data-orig-src="https://66.media.tumblr.com/7a01c78a942975211f837c5b5d3da8a2/tumblr_inline_n3veecl1RP1rgqrs8.png"><img alt="image" src="https://66.media.tumblr.com/7a01c78a942975211f837c5b5d3da8a2/tumblr_inline_pkbcohD4Yh1rgqrs8_540.png" data-orig-height="61" data-orig-width="425" data-orig-src="https://66.media.tumblr.com/7a01c78a942975211f837c5b5d3da8a2/tumblr_inline_n3veecl1RP1rgqrs8.png"/></figure></p>
+<h2>Ansible to the rescue</h2>
+<p><a href="http://www.ansible.com/home">Ansible</a> automates deployment. It is written in Python and installation is <a href="http://docs.ansible.com/intro_installation.html">relatively simple</a>. It is available through most linux distro repositories, you can clone it from github or install it via pip.</p>
+<p>Configuring ansible is also <a href="http://docs.ansible.com/intro_configuration.html">easy</a>. All you have to do is group your servers in an ansible_hosts file and use ansible’s playbooks and roles to <a href="http://docs.ansible.com/playbooks.html">configure</a> them.</p>
+<p>For example, this is a simple ansible_hosts file:</p>
+<pre><code>[testservers]
+testserver1 ansible_ssh_host=178.127.33.109
+testserver2 ansible_ssh_host=178.253.121.93
+testserver3 ansible_ssh_host=114.252.27.128
+
+[testservers:vars]
+ansible_ssh_user=mister
+ansible_ssh_private_key_file=~/.ssh/testkey
+</code></pre>
+<p>We just told Ansible that we have three test servers, grouped as <em>testservers</em>. For each one the user is <em>mister</em> and the ssh key is <em>testkey</em>, as defined in the [testservers:vars] section.</p>
+<p>Each test server should have docker installed and a specified docker image built and ready for use. To do that, we have to define some playbooks and roles:</p>
+<pre><code>- name: Install new kernel
+  sudo: True
+  apt:
+    pkg: "{{ item }}"
+    state: latest
+    update-cache: yes
+  with_items:
+    - linux-image-generic-lts-raring
+    - linux-headers-generic-lts-raring
+  register: kernel_result
+
+- name: Reboot instance if kernel has changed
+  sudo: True
+  command: reboot
+  register: reboot_result
+  when: "kernel_result|changed"
+
+- name: Wait for instance to come online
+  sudo: False
+  local_action: wait_for host={{ ansible_ssh_host }} port=22 state=started
+  when: "reboot_result|success"
+
+- name: Add Docker repository key
+  sudo: True
+  apt_key: url="https://get.docker.io/gpg"
+
+- name: Add Docker repository
+  sudo: True
+  apt_repository:
+    repo: 'deb <a href="http://get.docker.io/ubuntu">http://get.docker.io/ubuntu</a> docker main'
+    update_cache: yes
+
+- name: Install Docker
+  sudo: True
+  apt: pkg=lxc-docker state=present
+  notify: "Start Docker"
+
+- name: Make dir for io docker files
+  command: mkdir -p docker/iotest
+
+- name: Copy io Dockerfiles
+  template:
+    src=templates/iotest/Dockerfile.j2 dest=docker/iotest/Dockerfile
+
+- name: Copy io init scripts
+  copy:
+    src=templates/iotest/init.sh dest=docker/iotest/init.sh
+
+- name: Build docker images for io
+  sudo: True
+  command: docker build -t mist/iotest docker/iotest
+</code></pre>
+<p>After that, we just  have to set ansible to trigger the tests and spawn these docker applications. All Jenkins has to do is catch the webhook of a new pull request and issue one command:</p>
+<pre><code>ansible-playbook runtests.yml</code></pre>
+<p>Thats it. </p>
+<p>We have set up Jenkins to respond to Github commits and call Ansible to automatically spawn and configure our test servers, and we have optimized our testing speed by using pre-made Docker images.</p>
+<p><em>Thanks to <a href="https://twitter.com/philkates">Phil Kates</a> from Rackspace and <a href="https://twitter.com/nickstinemates">Nick Stinemates</a> from Docker for proof reading early versions of this.</em></p>
+<p><strong>Do you have machines across clouds and want to easily manage them? <a href="https://mist.io/">Sign up for Mist.io and try it for free!</a></strong></p>

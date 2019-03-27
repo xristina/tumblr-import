@@ -1,0 +1,26 @@
+---
+layout: post
+title: Monitor everything from anywhere! Introducing custom metrics through Mist.io
+date: '2014-07-08T20:27:00+03:00'
+tags:
+- cloud computing
+- monitoring
+tumblr_url: https://blog.mist.io/post/90766645046/monitor-everything-from-anywhere-introducing
+---
+<p>Since its very first version, Mist.io has been providing alerting, automation and real-time analytics based on the standard system metrics of any server. These include CPU, network, disk &amp; memory usage and they are good enough for most use cases, but you often need extra focus. You need to monitor the latency of your API, the number of requests processed by your web server, the performance of your database, or some entirely custom metric produced by your application. We decided to make the process of setting up such metrics as straightforward as possible and proudly achieved a major milestone!</p>
+<p><img alt="image" class="right-image" src="https://66.media.tumblr.com/8553d9aa45824523f3666417ec8173cc/tumblr_inline_n8elhpJLA41rgqrs8.png" width="180px"/></p>
+<p>You can try it out with just a few clicks. Go to your server’s page and click on “Add Graph”. You’ll see a popup containing a nested list with all the metrics currently available to the Collectd monitoring agent. Clicking on a metric will automatically add a new graph and you’ll be able to add rules that trigger alerts or automated responses depending on the metric’s values.</p>
+<p><span>Is your server a multi-user environment that provides ssh or scp access to multiple users? You can easily track how many users have logged in by adding a users graph. Do you need to know when the network connection becomes flaky? Just add a ping (latency) and a ping drop rate graph.</span></p>
+<p>You can also use one of the <a href="https://collectd.org/wiki/index.php/Table_of_Plugins">available Collectd plugins</a>. Once you install them on your server, they’ll become available through the “Select Metric” popup. Or you can write your own Python script to monitor a metric. The following code for example will monitor the load time of your home page.</p>
+<p><br/><img alt="image" src="https://66.media.tumblr.com/6cf18180f687ec87637121d95cde4199/tumblr_inline_n8elim8tbu1rgqrs8.png"/></p>
+
+<p>Clicking Deploy, will add a new graph displaying the load time of <a href="https://mist.io">https://mist.io</a></p>
+<p><img alt="image" src="https://66.media.tumblr.com/684687c521724f513c88c73a43963504/tumblr_inline_n8elxh6f4D1rgqrs8.png"/></p>
+
+<p>It’s pretty awesome to be able to take a look and see how your website and network performed the past week. It’s even more important to get notified right away once things start getting out of the accepted norms. So, after adding the ping graphs, scroll down to the rules section and click on “Add Rule”. Change the metric on the new rule to “Ping droprate” and set it up to alert you once it‘s losing over 5% of ping replies. You can also add a similar rule to be alerted when the ping latency between your server and Google’s public DNS server (8.8.8.8) exceeds 20ms.</p>
+<p><img alt="image" src="https://66.media.tumblr.com/16fa82f9d5183d379e67bb8e0036028f/tumblr_inline_n8elm2jYB61rgqrs8.jpg"/></p>
+
+<p>Mist.io will alert you by default if it can no longer communicate with your server and these two rules will also let you know if your network performance degrades.</p>
+<p>There is much much more you can monitor now. We have barely scratched the surface of what our new monitoring system can do. Stay tuned, as next week we’ll be posting some powerful examples on how to use it to keep track of your server and applications performance by adding your own, custom metrics.</p>
+<p><span>In the meantime, feel free to play around and if you have any questions, send them over to <a href="mailto:support@mist.io">support@mist.io</a>. We’ll be happy to answer them.</span></p>
+<p><strong>Do you have machines across clouds and want to easily manage them? <a href="https://mist.io/">Sign up for Mist.io and try it for free!</a></strong></p>

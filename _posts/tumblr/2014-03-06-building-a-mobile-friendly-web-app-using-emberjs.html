@@ -1,0 +1,75 @@
+---
+layout: post
+title: Building a mobile-friendly web app using Ember.js and jQuery Mobile
+date: '2014-03-06T18:53:00+02:00'
+tags:
+- emberjs
+- opensource
+- jquery mobile
+tumblr_url: https://blog.mist.io/post/78757774060/building-a-mobile-friendly-web-app-using-emberjs
+---
+<p><a href="http://emberjs.com/">Ember.js</a> is an MVC framework for creating powerful web applications. It has some nifty features like auto-updating templates and flexible routing. We use Ember.js to build the frontend of mist.io and because we want our interface to be mobile-friendly, we combine it with <a href="http://jquerymobile.com/">jQuery Mobile</a>.</p>
+<p><img alt="image" src="https://66.media.tumblr.com/2a793ccff35bdd5454d2377e576b7f82/tumblr_inline_n20yvbGg8m1rgqrs8.png"/></p>
+
+<p>This howto assumes you know how to build a basic Ember.js application. If this is the first time you’ve heard of it, you should first check out ember’s excellent <a href="http://emberjs.com/guides/getting-started/">startup guide</a>.</p>
+
+<p>The first and most important problem when trying to combine Ember.js and JQM is navigation. Each library has its own way of navigating between sections of a web page and they tend to not play nice with each other. We have to use only one of them, and we’ll go with Ember’s navigation system as it is much more powerful.  So, to disable JQM’s navigation system, add the following snippet before loading jquery-mobile.js :</p>
+<pre><code>$(document).bind('mobileinit', function() {
+    $.mobile.ajaxEnabled = false;
+    $.mobile.pushStateEnabled = false;
+    $.mobile.linkBindingEnabled = false;
+    $.mobile.hashListeningEnabled = false;
+});</code></pre>
+<p>That will stop JQM from trying to add hashes to our url and create links automatically.</p>
+<p>Now, let us move to our second biggest problem. Ember has a great support for data bindings, which makes dynamic content applications a child’s play. However, JQM renders the page only once and as a result, any widget inserted into the DOM afterwards will look ugly. To make JQM re-render an element that has changed, use the following code :</p>
+<pre><code>$(‘#my-element’).trigger(‘create’); // Renders #my-element AND all child elements</code></pre>
+<p><span>If you know exactly what widget you are dealing with, you can use it’s constructor:</span></p>
+<pre><code>$(‘#my-element’).button(); // Makes sure #my-element looks like a button</code></pre>
+<p>Beware of the difference though! Calling the constructor will force #my-element to become a button. If it’s rendered already, you will end up with a button inside another one. So, triggering the create event is mostly prefered.</p>
+<p><span>Now you know how to render an unrendered element, but that means you need to call this line of code each time your app inserts widgets into your DOM. Let’s see an example of how you can accomplish that:</span></p>
+<p><strong><span>JS</span></strong></p>
+<pre><code>// Foo Model
+App.fooModel = Ember.Object.extend({
+    text: ''
+});
+
+App.fooController = Ember.ArrayController.extend({
+
+    content: [],
+
+    addFoo: function() {
+        var foo = App.fooModel.create({
+            'text': 'Foo ' + this.content.length
+        });
+        this.content.pushObject(foo);
+    },
+
+    removeFoo: function() {
+        // Remove last object
+        this.content.removeObject(this.content[this.content.length - 1]);
+    }
+}).create();</code></pre>
+<p><strong>HTML</strong></p>
+<pre><code>&lt;div id=”my-list” data-role=”listview”&gt;
+    {{#each App.fooController.content}}
+        &lt;li&gt;
+            &lt;a data-role=”button”&gt;{{this.text}}&lt;/a&gt;
+        &lt;/li&gt;
+    {{/each}}
+&lt;/div&gt;</code></pre>
+<p><span>Here we have a super simple application. For each foo in fooController, we get a button with the text ‘Foo &lt;number&gt;’ . Now we run this code:<br/></span></p>
+<pre><code>App.fooController.addFoo();
+App.fooController.addFoo();</code></pre>
+<p><span>That will add new, unrendered buttons into the DOM. Use an observer to make sure everything shows up nicely:</span></p>
+<pre><code>// It would be more appropriate for this observer to be placed inside
+// a View, but for the sake of simplicity we wrote it inside fooController
+contentObserver: function() {
+    Ember.run.next(function() {
+        $(‘#my-list’).trigger(‘create’);
+    });
+}.observes(‘content’)</code></pre>
+<p><em>NOTE: jQuery mobile v1.4.0+ does not need data-role=”button” for buttons. However, the solution we present here applies to all widgets that make use of the data-role attribute</em></p>
+
+<p>Navigation and UI updates are the most common issues when combining Ember.js and JQM.  But when you’re trying to build a multi-page application, you run into both of these problems at the same time. <br/><br/>Here is a <a href="http://jsfiddle.net/5Scqp/10/">fiddle</a> that combines the two solutions we showed above, to build a working, multi-page application. Here is the same <a href="http://jsfiddle.net/5Scqp/11/">fiddle</a> including some functionality with the fooController we used in the examples.<br/></p>
+<p><span>On one of our next posts, we’ll share some tips on how to optimize Ember.js and jQuery mobile to improve overall performance while reducing your page size.</span></p>
+<p><strong>Do you have machines across clouds and want to easily manage them? <a href="https://mist.io/">Sign up for Mist.io and try it for free!</a></strong></p>

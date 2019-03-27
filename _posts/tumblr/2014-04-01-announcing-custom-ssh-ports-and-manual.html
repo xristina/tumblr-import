@@ -1,0 +1,20 @@
+---
+layout: post
+title: Announcing custom SSH ports and manual installation of monitoring
+date: '2014-04-01T16:43:00+03:00'
+tags: []
+tumblr_url: https://blog.mist.io/post/81387950498/announcing-custom-ssh-ports-and-manual
+---
+<p>We are always looking for ways to make our users&rsquo; lives simpler. We want to help increase their uptime without making them jump through hoops to create a &ldquo;Mist.io friendly&rdquo; setup. There is not a single right way to do things, needs vary from team to team.</p>
+
+<p>Adhering to the above, Mist.io now supports setups with custom SSH usernames and ports. Furthermore, it is now possible to install the monitoring agent manually without providing Mist.io access to do it for you.</p>
+<p><span>When you add your SSH key to one of your machines, Mist.io will try to connect to the standard SSH port. As of today, if the service cannot connect to your machine it will ask you to provide an alternate username and port.</span></p>
+<p><img alt="image" class="center-image" src="https://66.media.tumblr.com/d02d9c12cbcee96f0b955a3da604564a/tumblr_inline_n3cu3dGF3s1rgqrs8.jpg"/></p>
+
+<p>One of the reasons Mist.io needs SSH access in the first place, is to automatically install and configure the monitoring agent. In some cases however, providing SSH access to Mist.io is not possible. That is not an issue any more. You can now choose to manually install the <a href="http://collectd.org/">collectd </a>monitoring agent.</p>
+<p><span><img alt="image" class="center-image" src="https://66.media.tumblr.com/218c3d7723647a912f1cdc768c80c8ec/tumblr_inline_n3cu4eiT4Z1rgqrs8.jpg"/></span></p>
+
+<p>The drawback is that you have to run this on every machine. Notice that ID arguments will differ so you have to get the correct command for each one. Without SSH access you will also be missing out on some nice Mist.io features, like the touch-friendly web console. Furthermore, you will not be able to automatically run a command when a server metric, eg load, memory usage etc, reaches a certain threshold.</p>
+<p><br/>With all these new additions it is a perfect time to give Mist.io a try! We are always happy to hear your feedback and help you solve any issues you may have, so do not hesitate to reach out to us on <a href="https://twitter.com/mist_io">Twitter </a>or at support [at] mist.io.</p>
+
+<p><strong>Sign up for a <a href="https://mist.io">free trial</a> and let us worry about your server load. We’ll notify you if something goes wrong.</strong></p>
