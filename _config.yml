@@ -26,9 +26,10 @@ github_username:  jekyll
 
 # Build settings
 markdown: kramdown
-theme: minima
+# theme: minima
 plugins:
   - jekyll-feed
+  - github-pages
 
 # Jekyll 3 now only supports Kramdown for Markdown
 kramdown:
