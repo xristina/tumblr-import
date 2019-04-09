@@ -69,6 +69,7 @@ HTML markup:
       <path fill="rgb(50, 235, 30)" d="M150 0 L75 200 L225 200 Z"/>
     </svg>
 
+
 CSS rule:
 
     @media (-webkit-min-device-pixel-ratio: 2), 
@@ -89,7 +90,11 @@ When rendered on a client that can read the media query, the !important style wi
 
 On larger displays having a fixed width helps with avoiding long, difficult to read lines and keeping your email pretty. A good width for a template that looks nice on bigger resolutions is 600px. Using a fixed width can help center your content for big screens. For minor screen widths you should use media rules and change the width of your template to 100%.
 
-    @media screen and (max-width: 480px) { &nbsp;&nbsp;&nbsp;div#main { &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;width: 100%; &nbsp;&nbsp;&nbsp;} }
+    @media screen and (max-width: 480px) {
+      div#main { 
+        width: 100%;
+      }
+    }
 
 Unfortunately, as we covered earlier, style tags are not accepted by all clients and media queries can not be added inline. If you’re aiming at a very specific target group (i.e. only iOS users) you can get away with using media rules. You can check [here](https://litmus.com/blog/understanding-media-queries-in-html-email) which clients support media queries. Even rules like float, max-width and min-width are not 100% supported which reduces our options when building responsive templates. There are two solutions to provide responsive versions of your email: using tables attributes as shown [here](https://css-tricks.com/ideas-behind-responsive-emails/) or the so-called [hybrid approach](http://labs.actionrocket.co/the-hybrid-coding-approach).
 
