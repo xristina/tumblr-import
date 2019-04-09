@@ -32,21 +32,23 @@ To tackle this, you can develop the templates with separate CSS rules and turn t
 
 Your Gruntfile should look like this:
 
-    module.exports = function(grunt)
-    {
-      grunt.initConfig({
-       pkg: grunt.file.readJSON('package.json'),
-        inlinecss: {
-         main: {
-          files: {
-           'inlined.html': 'email.html'
-          }
-         }
-        }
-      });
-      grunt.loadNpmTasks('grunt-inline-css');
-      grunt.registerTask('default', ['inlinecss']);
-    };
+```javascript
+module.exports = function(grunt)
+{
+  grunt.initConfig({
+   pkg: grunt.file.readJSON('package.json'),
+    inlinecss: {
+     main: {
+      files: {
+       'inlined.html': 'email.html'
+      }
+     }
+    }
+  });
+  grunt.loadNpmTasks('grunt-inline-css');
+  grunt.registerTask('default', ['inlinecss']);
+};
+```
 
 Awesome, you can just put the rules inline and you’re done. Or not. Most clients don’t support CSS3 rules and some of them don’t even support common CSS 2.1 rules. For example, the outlook.com client doesn’t support margins and android Gmail application doesn’t support box-shadow. This forces your emails to look different across different devices and so you should be very careful on what style you are using and how you are applying it. A very useful table for css support across all types of email clients can be found [here](https://www.campaignmonitor.com/css/).
 
@@ -63,38 +65,40 @@ On screens with high density, like retina screens on high-end mobile phones, you
 Alternatively, SVG images look nice on retina displays but they are also not supported many email clients. If you really want to use the SVG format for your images, you should provide a fallback PNG version, use the SVG inline and use media queries to hide or reveal the appropriate image accordingly. That way the PNG logo will be always the default option in case the media rules are not supported by the client. Here is an example on how to do that:
 
 HTML markup:
-
-    <img style=”display:block;” class=”raster” src="images/logo.png" alt="logo" width="100px" height="150px">
-    <svg style=”display:none;” class=”vector” xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100px" height="150px">
-      <path fill="rgb(50, 235, 30)" d="M150 0 L75 200 L225 200 Z"/>
-    </svg>
-
+```html
+<img style=”display:block;” class=”raster” src="images/logo.png" alt="logo" width="100px" height="150px">
+<svg style=”display:none;” class=”vector” xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100px" height="150px">
+  <path fill="rgb(50, 235, 30)" d="M150 0 L75 200 L225 200 Z"/>
+</svg>
+```
 
 CSS rule:
-
-    @media (-webkit-min-device-pixel-ratio: 2), 
-      (min--moz-device-pixel-ratio: 2),
-      (min-resolution: 2dppx),
-      (min-resolution: 192dpi) {
-        [mobile] .raster {
-          display: none !important;
-        }
-        [mobile] .vector {
-          display: block !important;
-        }
-      }
-
+```css
+@media (-webkit-min-device-pixel-ratio: 2), 
+  (min--moz-device-pixel-ratio: 2),
+  (min-resolution: 2dppx),
+  (min-resolution: 192dpi) {
+    [mobile] .raster {
+      display: none !important;
+    }
+    [mobile] .vector {
+      display: block !important;
+    }
+  }
+````
 When rendered on a client that can read the media query, the !important style will kick in, trumping the inline styles.
 
 **Playing nice on different resolutions and clients**
 
 On larger displays having a fixed width helps with avoiding long, difficult to read lines and keeping your email pretty. A good width for a template that looks nice on bigger resolutions is 600px. Using a fixed width can help center your content for big screens. For minor screen widths you should use media rules and change the width of your template to 100%.
 
-    @media screen and (max-width: 480px) {
-      div#main { 
-        width: 100%;
-      }
-    }
+```css
+@media screen and (max-width: 480px) {
+  div#main { 
+    width: 100%;
+  }
+}
+```
 
 Unfortunately, as we covered earlier, style tags are not accepted by all clients and media queries can not be added inline. If you’re aiming at a very specific target group (i.e. only iOS users) you can get away with using media rules. You can check [here](https://litmus.com/blog/understanding-media-queries-in-html-email) which clients support media queries. Even rules like float, max-width and min-width are not 100% supported which reduces our options when building responsive templates. There are two solutions to provide responsive versions of your email: using tables attributes as shown [here](https://css-tricks.com/ideas-behind-responsive-emails/) or the so-called [hybrid approach](http://labs.actionrocket.co/the-hybrid-coding-approach).
 
